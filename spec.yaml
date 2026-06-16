@@ -1,10 +1,10 @@
 schemaVersion: "1"
-kind: agent
+kind: sandbox
 name: nanoclaw
 displayName: NanoClaw
 description: "Lightweight AI assistant runtime driven by Claude Code; ships the CLI channel — chat platforms (WhatsApp, Telegram, Discord, …) add via upstream skills"
 
-agent:
+sandbox:
   image: "docker/sandbox-templates:claude-code-docker"
   aiFilename: CLAUDE.md
   entrypoint:
@@ -24,6 +24,9 @@ network:
     - "claude.com:443"
     - "*.whatsapp.com"
     - "*.whatsapp.net"
+    # Telegram Bot API — required by the /add-telegram adapter (getMe,
+    # getUpdates/webhook, sendMessage all hit api.telegram.org).
+    - "api.telegram.org:443"
     - registry.npmjs.org
     - "*.npmjs.org"
     - nanoclaw.dev
@@ -93,11 +96,15 @@ commands:
       user: "root"
       description: Seed Claude settings.json from SBX_CRED_ANTHROPIC_MODE
     # Upstream nanoclaw is a pnpm project (packageManager: pnpm@10.33.0, ships
-    # pnpm-lock.yaml, no package-lock.json). Activate pnpm via corepack (root,
-    # writes shims to /usr/local/bin) so it is on PATH for the agent user.
-    - command: "corepack enable && corepack prepare pnpm@10.33.0 --activate"
+    # pnpm-lock.yaml, no package-lock.json). The base image's corepack shim
+    # (/usr/bin/pnpm) defaults to a pnpm 11.x that crashes on this Node
+    # (ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING). Install a standalone pnpm
+    # 10.33.0 into the shared global prefix (/usr/local/share/npm-global/bin,
+    # ahead of /usr/bin on PATH) so `pnpm` works for every user, in or out of
+    # the checkout. Uses the HTTP_PROXY env the sandbox already exports.
+    - command: "npm install -g pnpm@10.33.0"
       user: "0"
-      description: Activate pnpm 10 via corepack (upstream is a pnpm project)
+      description: Install standalone pnpm 10.33.0 globally (base-image corepack default crashes)
     # pnpm honors ~/.npmrc, so the proxy set here applies to both npm and pnpm.
     - command: "npm config set proxy $HTTP_PROXY && npm config set https-proxy $HTTP_PROXY"
       user: "1000"
@@ -129,9 +136,12 @@ commands:
         chmod +x /usr/local/bin/nanoclaw-start
       user: "0"
       description: Create agent entrypoint; waits for install but surfaces failures instead of hanging
-    # Clone + build with pnpm (the upstream lockfile is pnpm-lock.yaml). On ANY
-    # failed step, write nanoclaw-install.failed so the entrypoint stops waiting
-    # and shows the log. --frozen-lockfile keeps the install reproducible.
+    # Clone + build with pnpm (the upstream lockfile is pnpm-lock.yaml). The
+    # upgrade-state stamp is the sanctioned marker (same call /update-nanoclaw
+    # makes); without it the daemon's startup tripwire refuses to run a
+    # freshly-cloned checkout. On ANY failed step, write nanoclaw-install.failed
+    # so the entrypoint stops waiting and shows the log. --frozen-lockfile keeps
+    # the install reproducible.
     - command: |
         cat > /home/agent/nanoclaw-install.sh <<'INSTALL'
         #!/bin/sh
@@ -142,6 +152,7 @@ commands:
           pnpm install --frozen-lockfile &&
           pnpm rebuild better-sqlite3 &&
           pnpm run build &&
+          pnpm exec tsx scripts/upgrade-state.ts set &&
           touch /home/agent/nanoclaw/.installed
         } || touch /home/agent/nanoclaw-install.failed
         INSTALL
