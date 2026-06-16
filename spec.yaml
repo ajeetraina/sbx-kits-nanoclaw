@@ -24,6 +24,9 @@ network:
     - "claude.com:443"
     - "*.whatsapp.com"
     - "*.whatsapp.net"
+    # Telegram Bot API — required by the /add-telegram adapter (getMe,
+    # getUpdates/webhook, sendMessage all hit api.telegram.org).
+    - "api.telegram.org:443"
     - registry.npmjs.org
     - "*.npmjs.org"
     - nanoclaw.dev
