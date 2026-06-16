@@ -158,6 +158,19 @@ commands:
         # /home/agent/workspace, which has neither). Falls back gracefully if
         # the clone never landed.
         cd /home/agent/nanoclaw 2>/dev/null || true
+        # First attach: auto-launch the NanoClaw setup wizard (bash nanoclaw.sh)
+        # in this interactive sbx-run TTY. The clack UI needs a real terminal —
+        # which the entrypoint has, but Claude Code's embedded `!` shell does
+        # not, so running it from inside a Claude session leaves the prompts
+        # unresponsive. Runs once (guarded by .setup-done) and ALWAYS falls
+        # through to Claude Code so a failed, skipped, or Ctrl-C'd setup never
+        # traps the session. Opt out with NANOCLAW_AUTOSETUP=0.
+        if [ "${NANOCLAW_AUTOSETUP:-1}" = "1" ] \
+           && [ -f /home/agent/nanoclaw/.installed ] \
+           && [ ! -f /home/agent/nanoclaw/.setup-done ]; then
+          bash /home/agent/nanoclaw/nanoclaw.sh || true
+          touch /home/agent/nanoclaw/.setup-done
+        fi
         exec claude --dangerously-skip-permissions
         START
         chmod +x /usr/local/bin/nanoclaw-start
