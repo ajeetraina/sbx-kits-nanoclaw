@@ -1,7 +1,7 @@
 # nanoclaw
 
 A standalone agent kit (`kind: agent`) for
-[nanoclaw](https://github.com/qwibitai/nanoclaw) — a lightweight
+[nanoclaw](https://nanoclaw.dev) ([`nanocoai/nanoclaw`](https://github.com/nanocoai/nanoclaw)) — a lightweight
 AI assistant runtime driven by Claude Code. The kit clones and
 builds the upstream repo at sandbox creation time and runs Claude
 Code from inside the checkout as the entrypoint, so the project's
@@ -36,8 +36,8 @@ can debug, rather than hanging.
 
 `sbx run` drops you into a Claude Code session whose working
 directory is the nanoclaw checkout, with its `CLAUDE.md` already
-loaded — exactly as the upstream
-[README](https://github.com/qwibitai/nanoclaw#readme) recommends. From
+loaded — exactly as the official
+[install guide](https://github.com/nanocoai/nanoclaw#readme) recommends. From
 there, `/setup`, `/add-whatsapp`, `/customize`, etc. work as
 documented.
 

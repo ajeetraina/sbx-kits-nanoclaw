@@ -137,7 +137,7 @@ commands:
         #!/bin/sh
         rm -f /home/agent/nanoclaw-install.failed
         {
-          git clone --depth 1 https://github.com/qwibitai/nanoclaw.git /home/agent/nanoclaw &&
+          git clone --depth 1 https://github.com/nanocoai/nanoclaw.git /home/agent/nanoclaw &&
           cd /home/agent/nanoclaw &&
           pnpm install --frozen-lockfile &&
           pnpm rebuild better-sqlite3 &&
