@@ -27,19 +27,23 @@ $ sbx run --kit ./nanoclaw/ nanoclaw
 ```
 
 The first `sbx create` clones the upstream repo to
-`/home/agent/nanoclaw`, runs `npm install`, rebuilds native modules,
-and runs the TypeScript build (~2 minutes). Subsequent attaches
-are immediate.
+`/home/agent/nanoclaw`, runs `pnpm install` (upstream is a pnpm
+project — it ships `pnpm-lock.yaml`), rebuilds native modules, and
+runs the TypeScript build (~2 minutes). Subsequent attaches are
+immediate. If the install fails, the entrypoint prints the tail of
+`~/nanoclaw-install.log` and still drops you into Claude Code so you
+can debug, rather than hanging.
 
 `sbx run` drops you into a Claude Code session whose working
 directory is the nanoclaw checkout, with its `CLAUDE.md` already
-loaded — exactly as upstream's
-[install guide](https://nanoclaws.io/install) recommends. From
+loaded — exactly as the upstream
+[README](https://github.com/qwibitai/nanoclaw#readme) recommends. From
 there, `/setup`, `/add-whatsapp`, `/customize`, etc. work as
 documented.
 
-If you'd rather launch the daemon directly than enter Claude Code,
-exec a shell into the sandbox from another terminal and run:
+Upstream's own CLI is exposed as `ncl` (e.g. `ncl --help`). If you'd
+rather launch the built daemon directly than enter Claude Code, exec
+a shell into the sandbox from another terminal and run:
 
 ```console
 $ nanoclaw
