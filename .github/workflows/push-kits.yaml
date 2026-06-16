@@ -11,6 +11,17 @@ on:
         description: "OCI tag to publish"
         required: false
         default: "latest"
+  # Auto-publish :latest when the kit changes on main, and :<tag> on a v* tag.
+  push:
+    branches: [main]
+    paths:
+      - spec.yaml
+      - README.md
+      - LICENSE
+      - scripts/push-kits.sh
+      - .github/workflows/push-kits.yaml
+    tags:
+      - "v*"
 
 jobs:
   publish-kit:
@@ -22,7 +33,7 @@ jobs:
       - name: Install SBX
         env:
           GH_TOKEN: ${{ github.token }}
-          SBX_RELEASE: ${{ inputs.sbx_release }}
+          SBX_RELEASE: ${{ inputs.sbx_release || 'v0.32.0' }}
         run: |
           set -euo pipefail
           gh release download "$SBX_RELEASE" \
@@ -42,7 +53,8 @@ jobs:
       - name: Publish kit artifact
         env:
           DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_USERNAME }}
-          TAG: ${{ inputs.tag }}
+          # Tag push -> the version tag (vX.Y.Z); dispatch -> chosen tag; main push -> latest.
+          TAG: ${{ (startsWith(github.ref, 'refs/tags/') && github.ref_name) || inputs.tag || 'latest' }}
         run: bash ./scripts/push-kits.sh
 
       - name: Sync Docker Hub overview page
