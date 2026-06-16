@@ -43,7 +43,14 @@
       "Bash(curl -s --max-time 12 --resolve api.telegram.org:443:149.154.166.110 -o /dev/null -w \"real-IP HTTP %{http_code}\\\\n\" https://api.telegram.org/bot1:fake/getMe)",
       "Bash(nc -z -G 8 149.154.166.110 443)",
       "Bash(sbx stop *)",
-      "Bash(git pull *)"
+      "Bash(git pull *)",
+      "Bash(git cherry-pick *)",
+      "Bash(yq '.on | keys' .github/workflows/push-kits.yaml)",
+      "Bash(yq '.on.push' .github/workflows/push-kits.yaml)",
+      "Bash(gh run *)",
+      "Bash(gh secret *)",
+      "Bash(gh workflow *)",
+      "Bash(curl -s --max-time 20 \"https://hub.docker.com/v2/repositories/ajeetraina777/sbx-nanoclaw-kits/tags/?page_size=10\")"
     ]
   }
 }
