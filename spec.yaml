@@ -44,12 +44,11 @@ environment:
     IS_SANDBOX: "1"
 
 commands:
-  # ~/.claude.json carries only the bypass flags and is credential-independent,
-  # so it is a static init file (native onlyIfMissing idempotency). Phase 4
-  # lifts the former `settings: { containerSettings: { claude: true } }` block
-  # into the kit; the SBX_CRED_<SERVICE>_MODE-driven settings.json is seeded in
-  # commands.install below (first entry, runs synchronously before the agent
-  # launches). Content SYNCed with the claude kit.
+  # ~/.claude.json carries the bypass-accept + trust flags. This initFile only
+  # fires when no .claude.json exists; the base image ships one, so the real
+  # enforcement is the merge step in commands.install (which sets the flags on
+  # the existing file). The SBX_CRED_<SERVICE>_MODE-driven settings.json is
+  # seeded in commands.install below. Content SYNCed with the claude kit.
   initFiles:
     - path: /home/agent/.claude.json
       content: |
@@ -63,7 +62,7 @@ commands:
           }
         }
       onlyIfMissing: true
-      description: Claude bypass flags (mode-independent)
+      description: Claude bypass flags (only if no .claude.json — see merge step in install)
   install:
     # Seed ~/.claude/settings.json early (install runs synchronously before the
     # agent launches), branching on the auth mode surfaced via the
@@ -95,6 +94,29 @@ commands:
         chown -R agent:agent /home/agent/.claude
       user: "root"
       description: Seed Claude settings.json from SBX_CRED_ANTHROPIC_MODE
+    # The base image already ships a ~/.claude.json, so the onlyIfMissing
+    # initFile above never writes — leaving the bypass-accept + trust flags
+    # unset, which makes `claude --dangerously-skip-permissions` show the
+    # "accept Bypass Permissions mode" prompt and exit. Merge the flags into
+    # whatever .claude.json exists, and trust the paths we may launch from
+    # (the checkout and the workspace mount). Acceptance is read from
+    # .claude.json, not settings.json — setting it only in settings.json is
+    # not enough.
+    - command: |
+        node -e '
+          const fs = require("fs"), f = "/home/agent/.claude.json";
+          let j = {};
+          try { j = JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) {}
+          j.bypassPermissionsModeAccepted = true;
+          j.hasCompletedOnboarding = true;
+          j.projects = j.projects || {};
+          for (const p of ["/", "/home/agent/nanoclaw", "/home/agent/workspace"]) {
+            j.projects[p] = Object.assign({}, j.projects[p], { hasTrustDialogAccepted: true });
+          }
+          fs.writeFileSync(f, JSON.stringify(j, null, 2));
+        '
+      user: "1000"
+      description: Merge bypass-accept + trust flags into the base image's ~/.claude.json
     # Upstream nanoclaw is a pnpm project (packageManager: pnpm@10.33.0, ships
     # pnpm-lock.yaml, no package-lock.json). The base image's corepack shim
     # (/usr/bin/pnpm) defaults to a pnpm 11.x that crashes on this Node
@@ -131,6 +153,11 @@ commands:
             sleep 2
           done
         fi
+        # Launch Claude Code from inside the checkout so nanoclaw's CLAUDE.md
+        # and its 40+ .claude/skills/ load (the default workdir is
+        # /home/agent/workspace, which has neither). Falls back gracefully if
+        # the clone never landed.
+        cd /home/agent/nanoclaw 2>/dev/null || true
         exec claude --dangerously-skip-permissions
         START
         chmod +x /usr/local/bin/nanoclaw-start
