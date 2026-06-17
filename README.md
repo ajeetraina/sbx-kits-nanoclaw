@@ -1,4 +1,4 @@
-# nanoclaw
+# sbx kits for Nanoclaw
 
 A standalone [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) kit
 (`kind: sandbox`) for [NanoClaw](https://nanoclaw.dev)
