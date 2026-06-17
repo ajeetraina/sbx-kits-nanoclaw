@@ -2,7 +2,7 @@
 
 A standalone [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) kit
 (`kind: sandbox`) for [NanoClaw](https://nanoclaw.dev)
-([`nanocoai/nanoclaw`](https://github.com/nanocoai/nanoclaw)) — a lightweight,
+([`nanocoai/nanoclaw`](https://github.com/nanocoai/nanoclaw)) - a lightweight,
 secure AI assistant runtime driven by Claude Code. The kit clones and builds the
 upstream repo at sandbox creation time and runs Claude Code from inside the
 checkout as the entrypoint, so the project's `CLAUDE.md` and `.claude/skills/`
@@ -25,18 +25,6 @@ Run it directly — no clone required:
 sbx run --kit docker.io/ajeetraina777/sbx-nanoclaw-kits:latest nanoclaw
 ```
 
-### Image tags
-
-| Tag      | Contents                                                            |
-|----------|---------------------------------------------------------------------|
-| `latest` | The NanoClaw kit (`spec.yaml` + docs), upstream trunk / CLI channel |
-
-Pull it standalone with:
-
-```console
-docker pull ajeetraina777/sbx-nanoclaw-kits
-```
-
 ### Alternative deployment
 
 From the Git repository:
@@ -55,7 +43,7 @@ sbx run --kit ./sbx-kits-nanoclaw/ nanoclaw
 ## What happens on first run
 
 The first `sbx create` clones the upstream repo to `/home/agent/nanoclaw`, runs
-`pnpm install` (upstream is a pnpm project — it ships `pnpm-lock.yaml`), rebuilds
+`pnpm install` (upstream is a pnpm project, it ships `pnpm-lock.yaml`), rebuilds
 native modules, runs the TypeScript build, and stamps the upgrade marker
 (~2 minutes). Subsequent attaches are immediate. If the install fails, the
 entrypoint prints the tail of `~/nanoclaw-install.log` and still drops you into
