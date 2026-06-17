@@ -15,6 +15,14 @@ are loaded on attach.
 > skills run from inside Claude Code. This kit installs trunk and
 > lets you drive the rest from the shipped `claude` CLI.
 
+## Prerequisites
+
+> [!IMPORTANT]
+> Requires **sbx 0.32.0-rc or later**. This kit uses the v2 sandbox spec
+> (`kind: sandbox`); older sbx CLIs can't parse it and fail with
+> `invalid spec.yaml: field sandbox not found in type spec.specFile`. Check your
+> version with `sbx version` and upgrade if needed.
+
 ## Quick start
 
 The kit is published to Docker Hub at
@@ -113,9 +121,38 @@ curl -fsSL https://onecli.sh/install | sh
 
 If your agent containers run on a custom network (e.g. `172.18.0.0/16`), use that
 network's gateway (`docker network inspect <net> -f '{{(index .IPAM.Config 0).Gateway}}'`).
-Don't restart with `systemctl --user` / `launchctl` as the wizard suggests —
-there's no systemd/launchd in the sandbox; run the daemon directly instead
-(`cd ~/nanoclaw && nohup node dist/index.js > logs/nanoclaw.log 2>&1 &`).
+
+**`Couldn't reach the NanoClaw service` even though the daemon is running**
+
+The daemon's call to the local OneCLI gateway (at the bridge IP) gets captured by
+the sandbox's `HTTP_PROXY` (`gateway.docker.internal:3128`) and times out, because
+the gateway IP isn't in `NO_PROXY`. The kit's entrypoint adds the detected gateway
+IP (plus loopback) to `NO_PROXY` before launching the daemon. On an older image,
+set it yourself and restart the daemon — and use the **exact IP**, not a CIDR
+(Node's `fetch`/undici ignores CIDR ranges in `NO_PROXY`):
+
+```console
+export NO_PROXY="$NO_PROXY,localhost,127.0.0.1,$(ip -4 -o addr show docker0 | awk '{print $4}' | cut -d/ -f1)"
+cd ~/nanoclaw && pkill -f dist/index.js; bash start-nanoclaw.sh
+```
+
+**Setup ping fails: `NanoClaw service isn't listening on its CLI socket`**
+
+The sandbox has no systemd/launchd, so NanoClaw's service step only writes
+`start-nanoclaw.sh` without launching it and `data/cli.sock` is never created. The
+kit's entrypoint now auto-starts the daemon (via `start-nanoclaw.sh`, falling
+back to `node dist/index.js`) on each attach when it isn't already running. If
+you're on an older image, start it manually — don't use the `systemctl --user` /
+`launchctl` commands the wizard prints (neither exists in the sandbox):
+
+```console
+cd ~/nanoclaw && bash start-nanoclaw.sh   # or: nohup node dist/index.js > logs/nanoclaw.log 2>&1 &
+sleep 5 && ls data/cli.sock && echo ready
+```
+
+If the socket never appears, the daemon crashed on startup — check
+`~/nanoclaw/logs/nanoclaw.log` and `nanoclaw.error.log` (a common cause is the
+OneCLI `ConnectionRefused` issue above).
 
 Alternatively, skip OneCLI entirely and use the native credential proxy: put
 `CLAUDE_CODE_OAUTH_TOKEN=<token>` (or `ANTHROPIC_API_KEY`) in `.env` and run
