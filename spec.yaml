@@ -208,6 +208,16 @@ commands:
         # 127.0.0.1, which child containers can't reach. See commands.install.
         export ONECLI_BIND_HOST="$(/usr/local/bin/onecli-bind-host 2>/dev/null || echo 127.0.0.1)"
         echo "ONECLI_BIND_HOST=$ONECLI_BIND_HOST" >&2
+        # The NanoClaw daemon calls the OneCLI gateway at $ONECLI_BIND_HOST (a
+        # docker bridge IP). The sandbox exports HTTP_PROXY=gateway.docker.internal
+        # for external egress, which would also capture that LOCAL call and time
+        # out — so the daemon never reaches the gateway ("Couldn't reach the
+        # NanoClaw service" / ensureAgent timeout). Bypass the proxy for loopback
+        # and the gateway IP. NOTE: list the EXACT IP, not a CIDR — Node's fetch
+        # (undici) ignores CIDR ranges in NO_PROXY, so 172.x.0.0/16 does nothing.
+        export NO_PROXY="${NO_PROXY:+$NO_PROXY,}localhost,127.0.0.1,::1,$ONECLI_BIND_HOST"
+        export no_proxy="$NO_PROXY"
+        echo "NO_PROXY=$NO_PROXY" >&2
         # First attach: auto-launch the NanoClaw setup wizard (bash nanoclaw.sh)
         # in this interactive sbx-run TTY. The clack UI needs a real terminal —
         # which the entrypoint has, but Claude Code's embedded `!` shell does

@@ -122,6 +122,20 @@ curl -fsSL https://onecli.sh/install | sh
 If your agent containers run on a custom network (e.g. `172.18.0.0/16`), use that
 network's gateway (`docker network inspect <net> -f '{{(index .IPAM.Config 0).Gateway}}'`).
 
+**`Couldn't reach the NanoClaw service` even though the daemon is running**
+
+The daemon's call to the local OneCLI gateway (at the bridge IP) gets captured by
+the sandbox's `HTTP_PROXY` (`gateway.docker.internal:3128`) and times out, because
+the gateway IP isn't in `NO_PROXY`. The kit's entrypoint adds the detected gateway
+IP (plus loopback) to `NO_PROXY` before launching the daemon. On an older image,
+set it yourself and restart the daemon — and use the **exact IP**, not a CIDR
+(Node's `fetch`/undici ignores CIDR ranges in `NO_PROXY`):
+
+```console
+export NO_PROXY="$NO_PROXY,localhost,127.0.0.1,$(ip -4 -o addr show docker0 | awk '{print $4}' | cut -d/ -f1)"
+cd ~/nanoclaw && pkill -f dist/index.js; bash start-nanoclaw.sh
+```
+
 **Setup ping fails: `NanoClaw service isn't listening on its CLI socket`**
 
 The sandbox has no systemd/launchd, so NanoClaw's service step only writes
