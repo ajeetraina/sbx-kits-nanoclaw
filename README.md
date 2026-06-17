@@ -81,3 +81,31 @@ shipped/added channels need (`api.telegram.org`, `*.whatsapp.com`,
 controlled by the org policy instead of the kit's `allowedDomains`, so those
 hosts must be allowlisted at the policy/Hub level (exact hosts — wildcards may
 not sync).
+
+## Troubleshooting
+
+**`invalid spec.yaml: field sandbox not found in type spec.specFile`**
+
+This kit uses the v2 sandbox spec (`kind: sandbox`). Older sbx CLIs don't
+understand the top-level `sandbox:` block and fail to unmarshal it. Upgrade to
+**sbx 0.32-rc or later** (`sbx version` to check) and re-run.
+
+**OneCLI setup fails: `Could not safely determine a bind address for OneCLI`**
+
+OneCLI's gateway auto-detects an IP to bind to, and inside a sandbox it may not
+find a safe one. Set `ONECLI_BIND_HOST` before retrying `/setup` or
+`/init-onecli`:
+
+```console
+export ONECLI_BIND_HOST=127.0.0.1
+curl -fsSL https://onecli.sh/install | sh
+```
+
+Use `127.0.0.1` when only this sandbox talks to the gateway. If NanoClaw spawns
+nested agent containers that must reach it, loopback won't be reachable from
+them — use the sandbox's bridge IP instead (`hostname -i`, or
+`ip route get 1 | awk '{print $7; exit}'`).
+
+Alternatively, skip OneCLI entirely and use the native credential proxy: put
+`CLAUDE_CODE_OAUTH_TOKEN=<token>` (or `ANTHROPIC_API_KEY`) in `.env` and run
+`/use-native-credential-proxy`.

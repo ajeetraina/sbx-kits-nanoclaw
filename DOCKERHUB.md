@@ -51,5 +51,23 @@ GitHub). In a **centrally-governed sbx environment**, egress is controlled by th
 org policy instead of the kit's `allowedDomains`, so the channel hosts must be
 allowlisted at the policy/Hub level (exact hosts — wildcards may not sync).
 
+## Troubleshooting
+
+**`invalid spec.yaml: field sandbox not found in type spec.specFile`** — this kit
+uses the v2 sandbox spec (`kind: sandbox`). Upgrade to **sbx 0.32-rc or later**
+(`sbx version`) and re-run.
+
+**OneCLI setup fails with `Could not safely determine a bind address`** — set
+`ONECLI_BIND_HOST` before retrying:
+
+```console
+export ONECLI_BIND_HOST=127.0.0.1
+curl -fsSL https://onecli.sh/install | sh
+```
+
+Use `127.0.0.1` for a single sandbox; use the bridge IP (`hostname -i`) if nested
+agent containers must reach the gateway. Or skip OneCLI and use the native
+credential proxy (`CLAUDE_CODE_OAUTH_TOKEN` in `.env` + `/use-native-credential-proxy`).
+
 Full setup notes and the raw `spec.yaml` live on GitHub:
 https://github.com/ajeetraina/sbx-kits-nanoclaw
