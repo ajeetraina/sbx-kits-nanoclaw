@@ -221,6 +221,26 @@ commands:
           bash /home/agent/nanoclaw/nanoclaw.sh || true
           touch /home/agent/nanoclaw/.setup-done
         fi
+        # Ensure the NanoClaw daemon is running. The sandbox has no systemd or
+        # launchd, so NanoClaw's service step only WRITES start-nanoclaw.sh
+        # without launching it, and nothing restarts it across attaches — so
+        # setup's ping test fails with "service isn't listening on its CLI
+        # socket" (data/cli.sock never created). Start it ourselves whenever the
+        # daemon isn't already running. Idempotent: pgrep skips it if it's up.
+        # Backgrounded so we still drop into Claude Code; logs go to the same
+        # place NanoClaw uses so /debug and the wizard can find them.
+        if [ -f /home/agent/nanoclaw/.installed ] \
+           && ! pgrep -f '/nanoclaw/dist/index.js' >/dev/null 2>&1; then
+          echo "Starting NanoClaw daemon (no systemd in sandbox)..." >&2
+          mkdir -p /home/agent/nanoclaw/logs
+          if [ -f /home/agent/nanoclaw/start-nanoclaw.sh ]; then
+            ( cd /home/agent/nanoclaw && nohup bash start-nanoclaw.sh \
+                >> logs/nanoclaw.log 2>&1 & ) || true
+          else
+            ( cd /home/agent/nanoclaw && nohup node dist/index.js \
+                >> logs/nanoclaw.log 2>&1 & ) || true
+          fi
+        fi
         exec claude --dangerously-skip-permissions
         START
         chmod +x /usr/local/bin/nanoclaw-start
