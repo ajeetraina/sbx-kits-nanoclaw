@@ -57,18 +57,22 @@ allowlisted at the policy/Hub level (exact hosts — wildcards may not sync).
 uses the v2 sandbox spec (`kind: sandbox`). Upgrade to **sbx 0.32-rc or later**
 (`sbx version`) and re-run.
 
-**OneCLI setup fails with `Could not safely determine a bind address`** — the
-kit pins `ONECLI_BIND_HOST=127.0.0.1` in `spec.yaml` so `/setup` works out of the
-box. On an older image, set it yourself before retrying:
+**OneCLI fails to bind, or agents get `ConnectionRefused` on Claude API calls** —
+OneCLI auto-detects its bind address from the host `docker0` bridge (absent in
+the sandbox), and `127.0.0.1` is unreachable from NanoClaw's nested agent
+containers. The kit auto-detects the docker-network gateway and exports
+`ONECLI_BIND_HOST` before OneCLI installs. On an older image, set it yourself:
 
 ```console
-export ONECLI_BIND_HOST=127.0.0.1
+export ONECLI_BIND_HOST="$(ip -4 -o addr show docker0 | awk '{print $4}' | cut -d/ -f1)"
 curl -fsSL https://onecli.sh/install | sh
 ```
 
-Use `127.0.0.1` for a single sandbox; use the bridge IP (`hostname -i`) if nested
-agent containers must reach the gateway. Or skip OneCLI and use the native
-credential proxy (`CLAUDE_CODE_OAUTH_TOKEN` in `.env` + `/use-native-credential-proxy`).
+Use a custom network's gateway if your agent containers run on one. Don't restart
+with `systemctl`/`launchctl` (no systemd/launchd in-sandbox) — run the daemon
+directly (`cd ~/nanoclaw && nohup node dist/index.js > logs/nanoclaw.log 2>&1 &`).
+Or skip OneCLI and use the native credential proxy (`CLAUDE_CODE_OAUTH_TOKEN` in
+`.env` + `/use-native-credential-proxy`).
 
 Full setup notes and the raw `spec.yaml` live on GitHub:
 https://github.com/ajeetraina/sbx-kits-nanoclaw
