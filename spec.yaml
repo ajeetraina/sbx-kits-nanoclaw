@@ -218,25 +218,14 @@ commands:
         export NO_PROXY="${NO_PROXY:+$NO_PROXY,}localhost,127.0.0.1,::1,$ONECLI_BIND_HOST"
         export no_proxy="$NO_PROXY"
         echo "NO_PROXY=$NO_PROXY" >&2
-        # First attach: auto-launch the NanoClaw setup wizard (bash nanoclaw.sh)
-        # in this interactive sbx-run TTY. The clack UI needs a real terminal —
-        # which the entrypoint has, but Claude Code's embedded `!` shell does
-        # not, so running it from inside a Claude session leaves the prompts
-        # unresponsive. Runs once (guarded by .setup-done) and ALWAYS falls
-        # through to Claude Code so a failed, skipped, or Ctrl-C'd setup never
-        # traps the session. Opt out with NANOCLAW_AUTOSETUP=0.
-        if [ "${NANOCLAW_AUTOSETUP:-1}" = "1" ] \
-           && [ -f /home/agent/nanoclaw/.installed ] \
-           && [ ! -f /home/agent/nanoclaw/.setup-done ]; then
-          bash /home/agent/nanoclaw/nanoclaw.sh || true
-          touch /home/agent/nanoclaw/.setup-done
-        fi
-        # Ensure the NanoClaw daemon is running. The sandbox has no systemd or
-        # launchd, so NanoClaw's service step only WRITES start-nanoclaw.sh
-        # without launching it, and nothing restarts it across attaches — so
-        # setup's ping test fails with "service isn't listening on its CLI
-        # socket" (data/cli.sock never created). Start it ourselves whenever the
-        # daemon isn't already running. Idempotent: pgrep skips it if it's up.
+        # Ensure the NanoClaw daemon is running BEFORE the setup wizard runs its
+        # ping test. The sandbox has no systemd or launchd, so NanoClaw's service
+        # step only WRITES start-nanoclaw.sh without launching it, and nothing
+        # restarts it across attaches — so the wizard's ping fails with "service
+        # isn't listening on its CLI socket" (data/cli.sock never created). Start
+        # it ourselves whenever the daemon isn't already running, then wait
+        # (bounded) for the socket so the wizard's ping/pong — and the first user
+        # message — find it live. Idempotent: pgrep skips it if it's up.
         # Backgrounded so we still drop into Claude Code; logs go to the same
         # place NanoClaw uses so /debug and the wizard can find them.
         if [ -f /home/agent/nanoclaw/.installed ] \
@@ -250,6 +239,27 @@ commands:
             ( cd /home/agent/nanoclaw && nohup node dist/index.js \
                 >> logs/nanoclaw.log 2>&1 & ) || true
           fi
+          i=0
+          while [ $i -lt 20 ] && [ ! -S /home/agent/nanoclaw/data/cli.sock ]; do
+            sleep 1; i=$((i+1))
+          done
+          [ -S /home/agent/nanoclaw/data/cli.sock ] \
+            && echo "NanoClaw daemon listening (cli.sock up after ${i}s)." >&2 \
+            || echo "NanoClaw daemon socket not up after ${i}s; see logs/nanoclaw.log." >&2
+        fi
+        # First attach: auto-launch the NanoClaw setup wizard (bash nanoclaw.sh)
+        # in this interactive sbx-run TTY. The clack UI needs a real terminal —
+        # which the entrypoint has, but Claude Code's embedded `!` shell does
+        # not, so running it from inside a Claude session leaves the prompts
+        # unresponsive. Runs once (guarded by .setup-done) and ALWAYS falls
+        # through to Claude Code so a failed, skipped, or Ctrl-C'd setup never
+        # traps the session. Opt out with NANOCLAW_AUTOSETUP=0. The daemon was
+        # started above so the wizard's ping test finds the socket live.
+        if [ "${NANOCLAW_AUTOSETUP:-1}" = "1" ] \
+           && [ -f /home/agent/nanoclaw/.installed ] \
+           && [ ! -f /home/agent/nanoclaw/.setup-done ]; then
+          bash /home/agent/nanoclaw/nanoclaw.sh || true
+          touch /home/agent/nanoclaw/.setup-done
         fi
         exec claude --dangerously-skip-permissions
         START
