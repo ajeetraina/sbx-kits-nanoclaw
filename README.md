@@ -92,18 +92,20 @@ understand the top-level `sandbox:` block and fail to unmarshal it. Upgrade to
 
 **OneCLI setup fails: `Could not safely determine a bind address for OneCLI`**
 
-OneCLI's gateway auto-detects an IP to bind to, and inside a sandbox it may not
-find a safe one. Set `ONECLI_BIND_HOST` before retrying `/setup` or
-`/init-onecli`:
+OneCLI's installer auto-detects its listen address from the host `docker0`
+bridge, which doesn't exist inside the sandbox container. The kit sets
+`ONECLI_BIND_HOST=127.0.0.1` in `spec.yaml` so `/setup` works out of the box. If
+you're on an **older published image** (or running an unpatched `spec.yaml`),
+set it yourself before retrying `/setup` or `/init-onecli`:
 
 ```console
 export ONECLI_BIND_HOST=127.0.0.1
 curl -fsSL https://onecli.sh/install | sh
 ```
 
-Use `127.0.0.1` when only this sandbox talks to the gateway. If NanoClaw spawns
+`127.0.0.1` works when only this sandbox talks to the gateway. If NanoClaw spawns
 nested agent containers that must reach it, loopback won't be reachable from
-them — use the sandbox's bridge IP instead (`hostname -i`, or
+them — override with the sandbox's bridge IP instead (`hostname -i`, or
 `ip route get 1 | awk '{print $7; exit}'`).
 
 Alternatively, skip OneCLI entirely and use the native credential proxy: put

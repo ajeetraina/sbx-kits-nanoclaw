@@ -42,6 +42,14 @@ credentials:
 environment:
   variables:
     IS_SANDBOX: "1"
+    # OneCLI's installer auto-detects its listen address from the host's docker0
+    # bridge (`ip -4 addr show docker0`), which doesn't exist inside this sandbox
+    # container — so /setup fails with "Could not safely determine a bind address
+    # for OneCLI". Pin it to loopback (what OneCLI itself uses on macOS/WSL; it
+    # refuses 0.0.0.0). Gateway/dashboard bind 127.0.0.1:10255/:10254, reachable
+    # by the in-sandbox agent. If NanoClaw later spawns nested agent containers
+    # that must reach the gateway, override with the sandbox's bridge IP.
+    ONECLI_BIND_HOST: "127.0.0.1"
 
 commands:
   # ~/.claude.json carries the bypass-accept + trust flags. This initFile only

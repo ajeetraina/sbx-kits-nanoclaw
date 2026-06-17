@@ -57,8 +57,9 @@ allowlisted at the policy/Hub level (exact hosts — wildcards may not sync).
 uses the v2 sandbox spec (`kind: sandbox`). Upgrade to **sbx 0.32-rc or later**
 (`sbx version`) and re-run.
 
-**OneCLI setup fails with `Could not safely determine a bind address`** — set
-`ONECLI_BIND_HOST` before retrying:
+**OneCLI setup fails with `Could not safely determine a bind address`** — the
+kit pins `ONECLI_BIND_HOST=127.0.0.1` in `spec.yaml` so `/setup` works out of the
+box. On an older image, set it yourself before retrying:
 
 ```console
 export ONECLI_BIND_HOST=127.0.0.1
