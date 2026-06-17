@@ -19,6 +19,12 @@ Source and full docs: https://github.com/ajeetraina/sbx-kits-nanoclaw
 > (WhatsApp, Telegram, Discord, Slack, …) live on the upstream `channels` branch
 > and are installed from inside Claude Code via `/add-<channel>` skills.
 
+## Prerequisites
+
+**Requires sbx 0.32.0-rc or later.** This kit uses the v2 sandbox spec
+(`kind: sandbox`); older sbx CLIs fail with `invalid spec.yaml: field sandbox not
+found in type spec.specFile`. Check with `sbx version` and upgrade if needed.
+
 ## Quick start
 
 ```console

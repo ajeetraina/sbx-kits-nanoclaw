@@ -15,6 +15,14 @@ are loaded on attach.
 > skills run from inside Claude Code. This kit installs trunk and
 > lets you drive the rest from the shipped `claude` CLI.
 
+## Prerequisites
+
+> [!IMPORTANT]
+> Requires **sbx 0.32.0-rc or later**. This kit uses the v2 sandbox spec
+> (`kind: sandbox`); older sbx CLIs can't parse it and fail with
+> `invalid spec.yaml: field sandbox not found in type spec.specFile`. Check your
+> version with `sbx version` and upgrade if needed.
+
 ## Quick start
 
 The kit is published to Docker Hub at
