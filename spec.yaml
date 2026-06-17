@@ -32,6 +32,20 @@ network:
     - nanoclaw.dev
     - "github.com:443"
     - "objects.githubusercontent.com:443"
+    # OneCLI agent vault. /setup installs the gateway via
+    # `curl onecli.sh/install | sh`, which fetches a docker-compose.yml from
+    # raw.githubusercontent.com and pulls the gateway image
+    # ghcr.io/onecli/onecli:<pin> (layer blobs served from
+    # pkg-containers.githubusercontent.com). Without these the gateway never
+    # starts: the install script gets a deny page, the URL detector falls back
+    # to github.com, and the vault save fails with 422. The postgres:18-alpine
+    # sidecar pulls from Docker Hub (already reachable for the agent base image).
+    # In a centrally-governed sbx environment these must ALSO be allowlisted at
+    # the Hub/policy level (exact hosts — wildcards may not sync).
+    - "onecli.sh:443"
+    - "ghcr.io:443"
+    - "raw.githubusercontent.com:443"
+    - "pkg-containers.githubusercontent.com:443"
 
 credentials:
   sources:
