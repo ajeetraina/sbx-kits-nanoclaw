@@ -50,7 +50,23 @@
       "Bash(gh run *)",
       "Bash(gh secret *)",
       "Bash(gh workflow *)",
-      "Bash(curl -s --max-time 20 \"https://hub.docker.com/v2/repositories/ajeetraina777/sbx-nanoclaw-kits/tags/?page_size=10\")"
+      "Bash(curl -s --max-time 20 \"https://hub.docker.com/v2/repositories/ajeetraina777/sbx-nanoclaw-kits/tags/?page_size=10\")",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(gh api *)",
+      "WebFetch(domain:hub.docker.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git fetch *)",
+      "Bash(git stash *)",
+      "Bash(node -e \"const fs=require\\('fs'\\); const s=fs.readFileSync\\('spec.yaml','utf8'\\); try{const yaml=require\\('js-yaml'\\); const d=yaml.load\\(s\\); console.log\\('parsed with js-yaml; kind=',d.kind,'install steps=',d.commands.install.length\\);}catch\\(e\\){console.log\\('js-yaml not available, falling back'\\); }\")",
+      "Bash(ruby -ryaml -e \"d=YAML.load_file\\('spec.yaml'\\); puts 'YAML OK'; puts 'kind: '+d['kind'].to_s; puts 'env: '+d['environment']['variables'].keys.join\\(','\\); puts 'install steps: '+d['commands']['install'].length.to_s\")",
+      "Bash(ruby -ryaml -e \"d=YAML.load_file\\('spec.yaml'\\); puts 'YAML OK; kind='+d['kind'].to_s+'; install steps='+d['commands']['install'].length.to_s\")",
+      "Bash(ruby -ryaml -e \"d=YAML.load_file\\('spec.yaml'\\); puts 'YAML OK; kind='+d['kind'].to_s\")",
+      "Bash(command -v onecli oc onecli-agent)",
+      "Read(//Users/ajeetraina/**)",
+      "Bash(echo \"---exit:$?---\")",
+      "Bash(echo \"exit:$?\")",
+      "Bash(sbx cp *)"
     ]
   }
 }
