@@ -42,14 +42,15 @@ credentials:
 environment:
   variables:
     IS_SANDBOX: "1"
-    # OneCLI's installer auto-detects its listen address from the host's docker0
-    # bridge (`ip -4 addr show docker0`), which doesn't exist inside this sandbox
-    # container — so /setup fails with "Could not safely determine a bind address
-    # for OneCLI". Pin it to loopback (what OneCLI itself uses on macOS/WSL; it
-    # refuses 0.0.0.0). Gateway/dashboard bind 127.0.0.1:10255/:10254, reachable
-    # by the in-sandbox agent. If NanoClaw later spawns nested agent containers
-    # that must reach the gateway, override with the sandbox's bridge IP.
-    ONECLI_BIND_HOST: "127.0.0.1"
+    # NOTE: ONECLI_BIND_HOST is intentionally NOT a static value here. OneCLI's
+    # installer auto-detects its listen address from the host docker0 bridge,
+    # which doesn't exist inside this sandbox, so /setup fails with "Could not
+    # safely determine a bind address for OneCLI". A static 127.0.0.1 fixes the
+    # install but is unreachable from the nested agent containers NanoClaw spawns
+    # (loopback inside a container is that container, not the sandbox). Instead it
+    # is computed at runtime by /usr/local/bin/onecli-bind-host (the NanoClaw
+    # docker-network gateway) and exported in the entrypoint + login shells — see
+    # commands.install below.
 
 commands:
   # ~/.claude.json carries the bypass-accept + trust flags. This initFile only
@@ -72,6 +73,41 @@ commands:
       onlyIfMissing: true
       description: Claude bypass flags (only if no .claude.json — see merge step in install)
   install:
+    # OneCLI's gateway must bind to an address the NESTED agent containers
+    # NanoClaw spawns can reach. 127.0.0.1 only works for the sandbox itself;
+    # from a child container loopback is that container, not the sandbox, so the
+    # agent gets ConnectionRefused calling the Claude API through the gateway
+    # (host.docker.internal doesn't resolve on Linux Docker either). The address
+    # that works is the gateway IP of the docker network the agent containers run
+    # on. Write a detector that prefers NanoClaw's docker-network gateway, then
+    # docker0, then any RFC1918 bridge gateway, then loopback — and a profile.d
+    # snippet so every login shell (and a later manual OneCLI reinstall) exports
+    # the right value. The entrypoint also sources it before /setup runs.
+    - command: |
+        cat > /usr/local/bin/onecli-bind-host <<'DETECT'
+        #!/bin/sh
+        # Print the host address OneCLI's gateway should bind to so NanoClaw's
+        # nested agent containers can reach it (NOT 127.0.0.1 — unreachable from
+        # child containers). See spec.yaml for the why.
+        if command -v docker >/dev/null 2>&1; then
+          net=$(docker network ls --format '{{.Name}}' 2>/dev/null | grep -i nanoclaw | head -n1)
+          [ -z "$net" ] && net=bridge
+          gw=$(docker network inspect "$net" -f '{{range .IPAM.Config}}{{.Gateway}} {{end}}' 2>/dev/null | awk '{print $1}')
+          [ -n "$gw" ] && { echo "$gw"; exit 0; }
+        fi
+        gw=$(ip -4 -o addr show docker0 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n1)
+        [ -n "$gw" ] && { echo "$gw"; exit 0; }
+        gw=$(ip -4 -o addr show 2>/dev/null | awk '{print $4}' | cut -d/ -f1 \
+             | grep -E '^(172\.(1[6-9]|2[0-9]|3[0-1])|10\.|192\.168)\.[0-9]+\.1$' | head -n1)
+        [ -n "$gw" ] && { echo "$gw"; exit 0; }
+        echo 127.0.0.1
+        DETECT
+        chmod +x /usr/local/bin/onecli-bind-host
+        printf '%s\n' 'export ONECLI_BIND_HOST="$(/usr/local/bin/onecli-bind-host)"' \
+          > /etc/profile.d/onecli-bind-host.sh
+        chmod +x /etc/profile.d/onecli-bind-host.sh
+      user: "0"
+      description: Install dynamic ONECLI_BIND_HOST detector (bridge gateway reachable by nested agent containers)
     # Seed ~/.claude/settings.json early (install runs synchronously before the
     # agent launches), branching on the auth mode surfaced via the
     # SBX_CRED_ANTHROPIC_MODE container env var (this kit declares the
@@ -166,6 +202,12 @@ commands:
         # /home/agent/workspace, which has neither). Falls back gracefully if
         # the clone never landed.
         cd /home/agent/nanoclaw 2>/dev/null || true
+        # Compute the OneCLI gateway bind address (the docker-network gateway the
+        # nested agent containers can reach) before the wizard runs OneCLI's
+        # installer. Without this, OneCLI either can't pick an address or binds
+        # 127.0.0.1, which child containers can't reach. See commands.install.
+        export ONECLI_BIND_HOST="$(/usr/local/bin/onecli-bind-host 2>/dev/null || echo 127.0.0.1)"
+        echo "ONECLI_BIND_HOST=$ONECLI_BIND_HOST" >&2
         # First attach: auto-launch the NanoClaw setup wizard (bash nanoclaw.sh)
         # in this interactive sbx-run TTY. The clack UI needs a real terminal —
         # which the entrypoint has, but Claude Code's embedded `!` shell does

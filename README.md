@@ -90,23 +90,32 @@ This kit uses the v2 sandbox spec (`kind: sandbox`). Older sbx CLIs don't
 understand the top-level `sandbox:` block and fail to unmarshal it. Upgrade to
 **sbx 0.32-rc or later** (`sbx version` to check) and re-run.
 
-**OneCLI setup fails: `Could not safely determine a bind address for OneCLI`**
+**OneCLI setup fails, or agents get `ConnectionRefused` calling the Claude API**
 
 OneCLI's installer auto-detects its listen address from the host `docker0`
-bridge, which doesn't exist inside the sandbox container. The kit sets
-`ONECLI_BIND_HOST=127.0.0.1` in `spec.yaml` so `/setup` works out of the box. If
-you're on an **older published image** (or running an unpatched `spec.yaml`),
-set it yourself before retrying `/setup` or `/init-onecli`:
+bridge, which doesn't exist inside the sandbox — so `/setup` fails with `Could
+not safely determine a bind address for OneCLI`. Binding it to `127.0.0.1` fixes
+the install but then **NanoClaw's nested agent containers can't reach the
+gateway** (loopback inside a child container is that container, not the sandbox),
+so the agent gets `ConnectionRefused` on every Claude API call.
+
+The kit handles this automatically: `/usr/local/bin/onecli-bind-host` detects the
+gateway IP of NanoClaw's docker network (the address child containers can reach)
+and the entrypoint + `/etc/profile.d/onecli-bind-host.sh` export it as
+`ONECLI_BIND_HOST` before OneCLI installs. On an **older published image**, do it
+yourself before retrying `/setup` or `/init-onecli`:
 
 ```console
-export ONECLI_BIND_HOST=127.0.0.1
+# the docker-network gateway, NOT 127.0.0.1
+export ONECLI_BIND_HOST="$(ip -4 -o addr show docker0 | awk '{print $4}' | cut -d/ -f1)"
 curl -fsSL https://onecli.sh/install | sh
 ```
 
-`127.0.0.1` works when only this sandbox talks to the gateway. If NanoClaw spawns
-nested agent containers that must reach it, loopback won't be reachable from
-them — override with the sandbox's bridge IP instead (`hostname -i`, or
-`ip route get 1 | awk '{print $7; exit}'`).
+If your agent containers run on a custom network (e.g. `172.18.0.0/16`), use that
+network's gateway (`docker network inspect <net> -f '{{(index .IPAM.Config 0).Gateway}}'`).
+Don't restart with `systemctl --user` / `launchctl` as the wizard suggests —
+there's no systemd/launchd in the sandbox; run the daemon directly instead
+(`cd ~/nanoclaw && nohup node dist/index.js > logs/nanoclaw.log 2>&1 &`).
 
 Alternatively, skip OneCLI entirely and use the native credential proxy: put
 `CLAUDE_CODE_OAUTH_TOKEN=<token>` (or `ANTHROPIC_API_KEY`) in `.env` and run
