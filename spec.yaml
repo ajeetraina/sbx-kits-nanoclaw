@@ -56,6 +56,21 @@ credentials:
 environment:
   variables:
     IS_SANDBOX: "1"
+    # Drive NanoClaw's setup-wizard auth step (setup/auto.ts:runAuthStep)
+    # non-interactively. Left to itself the wizard defaults to "Sign in with my
+    # Claude subscription", which runs setup/register-claude-token.sh — a browser
+    # OAuth flow. This sandbox has no browser, so that step exits non-zero and
+    # setup dies with "Couldn't complete the Claude sign-in". Setting BOTH of
+    # these makes runAuthStep take its custom-endpoint branch instead: it stores
+    # the token in OneCLI keyed to api.anthropic.com and returns without any
+    # prompt. The token value is a placeholder on purpose — real auth is injected
+    # at the sandbox egress, where network.serviceAuth.anthropic rewrites the
+    # x-api-key header for api.anthropic.com on the way out (see ANTHROPIC_API_KEY
+    # in credentials.sources). OneCLI only needs *a* secret present so the gate
+    # passes and it has a route for that host. This branch runs AFTER the wizard's
+    # onecli step installs the gateway, so there is no ordering problem.
+    NANOCLAW_ANTHROPIC_BASE_URL: "https://api.anthropic.com"
+    NANOCLAW_ANTHROPIC_AUTH_TOKEN: "sandbox-edge-injected"
     # NOTE: ONECLI_BIND_HOST is intentionally NOT a static value here. OneCLI's
     # installer auto-detects its listen address from the host docker0 bridge,
     # which doesn't exist inside this sandbox, so /setup fails with "Could not
