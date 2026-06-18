@@ -42,6 +42,17 @@ network:
     # sidecar pulls from Docker Hub (already reachable for the agent base image).
     # In a centrally-governed sbx environment these must ALSO be allowlisted at
     # the Hub/policy level (exact hosts — wildcards may not sync).
+    #
+    # NOTE: nanoclaw's setup/onecli.ts installs the gateway with a BARE-host
+    # command, `curl -fsSL onecli.sh/install | sh`. curl defaults a schemeless
+    # URL to http, and onecli.sh answers http with a 403 (it does not redirect
+    # to https), so the install fails — and the `| sh` pipe masks curl's
+    # non-zero exit, so the wizard reports OneCLI "ready" while no gateway
+    # exists. api-host then falls back to a github.com URL scraped from later
+    # output, and every `onecli secrets` call 404s/422s against github.com
+    # (this is what aborts the auth step with "Couldn't save your Anthropic
+    # auth token to the vault"). The fix is the ~/.curlrc below, which makes the
+    # bare command resolve to https://onecli.sh — so only :443 is needed here.
     - "onecli.sh:443"
     - "ghcr.io:443"
     - "raw.githubusercontent.com:443"
@@ -101,6 +112,20 @@ commands:
         }
       onlyIfMissing: true
       description: Claude bypass flags (only if no .claude.json — see merge step in install)
+    # Make schemeless curl URLs default to https. nanoclaw's setup/onecli.ts
+    # installs the gateway with `curl -fsSL onecli.sh/install | sh` (a bare
+    # host); curl would otherwise try http://onecli.sh, which 403s (no redirect
+    # to https), the install silently fails, and the OneCLI api-host falls back
+    # to github.com — breaking every `onecli secrets` call and aborting the
+    # wizard's auth step. proto-default=https makes the bare command resolve to
+    # https://onecli.sh and the gateway installs cleanly. curl reads ~/.curlrc
+    # automatically (onecli.ts runs curl without -q), and HOME=/home/agent in
+    # the wizard. See the onecli.sh allowlist note in network.allowedDomains.
+    - path: /home/agent/.curlrc
+      content: |
+        proto-default = https
+      onlyIfMissing: true
+      description: Default schemeless curl URLs to https (fixes OneCLI gateway install)
   install:
     # OneCLI's gateway must bind to an address the NESTED agent containers
     # NanoClaw spawns can reach. 127.0.0.1 only works for the sandbox itself;
