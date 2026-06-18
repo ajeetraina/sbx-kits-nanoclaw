@@ -17,6 +17,12 @@ are loaded on attach.
 
 ## Prerequisites
 
+### Login to Docker Hub
+
+```console
+sbx login
+```
+
 > [!IMPORTANT]
 > Requires **sbx 0.32.0-rc or later**. This kit uses the v2 sandbox spec
 > (`kind: sandbox`); older sbx CLIs can't parse it and fail with
