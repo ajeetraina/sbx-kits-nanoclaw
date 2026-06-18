@@ -72,7 +72,11 @@
       "Bash(curl -fsS http://127.0.0.1:10254/)",
       "Bash(launchctl list *)",
       "Bash(sbx version *)",
-      "Bash(ruby -ryaml -e \"YAML.load_file\\('spec.yaml'\\); puts 'YAML OK'\")"
+      "Bash(ruby -ryaml -e \"YAML.load_file\\('spec.yaml'\\); puts 'YAML OK'\")",
+      "Bash(git merge *)",
+      "Bash(echo \"=== EXIT: $? ===\")",
+      "Bash(docker version *)",
+      "Bash(sbx run *)"
     ]
   }
 }
