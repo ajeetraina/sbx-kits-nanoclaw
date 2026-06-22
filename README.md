@@ -44,24 +44,21 @@ git clone https://github.com/ajeetraina/sbx-kits-nanoclaw.git
 sbx run --kit ./sbx-kits-nanoclaw/ nanoclaw
 ```
 
-## What happens on first run
+## How it works?
 
-The first `sbx create` clones the upstream repo to `/home/agent/nanoclaw`, runs
-`pnpm install` (upstream is a pnpm project, it ships `pnpm-lock.yaml`), rebuilds
-native modules, runs the TypeScript build, and stamps the upgrade marker
-(~2 minutes). Subsequent attaches are immediate. If the install fails, the
-entrypoint prints the tail of `~/nanoclaw-install.log` and still drops you into
-Claude Code so you can debug (`cd ~/nanoclaw && pnpm install`), rather than
-hanging.
+- The first `sbx create` clones the upstream repo to `/home/agent/nanoclaw`,
+- It then runs `pnpm install` (upstream is a pnpm project, it ships `pnpm-lock.yaml`),
+- It rebuilds native modules, runs the TypeScript build, and stamps the upgrade marker (~2 minutes).
+- Subsequent attaches are immediate.
+- If the install fails, the entrypoint prints the tail of `~/nanoclaw-install.log` and still drops you into
+Claude Code so you can debug (`cd ~/nanoclaw && pnpm install`), rather than hanging.
 
-`sbx run` drops you into a Claude Code session whose working directory is the
-nanoclaw checkout, with its `CLAUDE.md` already loaded — exactly as the official
-[install guide](https://github.com/nanocoai/nanoclaw#readme) recommends. From
-there, `/setup`, `/add-whatsapp`, `/add-telegram`, `/customize`, etc. work as
+- `sbx run` drops you into a Claude Code session whose working directory is the
+nanoclaw checkout, with its `CLAUDE.md` already loaded, exactly as the official
+[install guide](https://github.com/nanocoai/nanoclaw#readme) recommends.
+- From there, `/setup`, `/add-whatsapp`, `/add-telegram`, `/customize`, etc. work as
 documented.
-
-Upstream's own CLI is exposed as `ncl` (e.g. `ncl --help`). If you'd rather
-launch the built daemon directly than enter Claude Code, exec a shell into the
+- Upstream's own CLI is exposed as `ncl` (e.g. `ncl --help`). If you'd rather launch the built daemon directly than enter Claude Code, exec a shell into the
 sandbox from another terminal and run:
 
 ```console
@@ -70,10 +67,10 @@ nanoclaw
 
 ## How auth works
 
-The kit declares the same Anthropic auth wiring as the built-in `claude` agent
+- The kit declares the same Anthropic auth wiring as the built-in `claude` agent
 kit: `serviceDomains`/`serviceAuth` for `api.anthropic.com`, the OAuth flow
 against `platform.claude.com`, and the `proxy-managed` sentinel pattern.
-Credentials never enter the container — the sandbox proxy substitutes the real
+- Credentials never enter the container — the sandbox proxy substitutes the real
 value on egress. No `-e` flag, by design.
 
 ## Channels & egress
