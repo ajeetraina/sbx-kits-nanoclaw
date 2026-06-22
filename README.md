@@ -85,13 +85,13 @@ not sync).
 
 ## Troubleshooting
 
-**`invalid spec.yaml: field sandbox not found in type spec.specFile`**
+1. **`invalid spec.yaml: field sandbox not found in type spec.specFile`**
 
 This kit uses the v2 sandbox spec (`kind: sandbox`). Older sbx CLIs don't
 understand the top-level `sandbox:` block and fail to unmarshal it. Upgrade to
 **sbx 0.32-rc or later** (`sbx version` to check) and re-run.
 
-**OneCLI setup fails, or agents get `ConnectionRefused` calling the Claude API**
+2. **OneCLI setup fails, or agents get `ConnectionRefused` calling the Claude API**
 
 OneCLI's installer auto-detects its listen address from the host `docker0`
 bridge, which doesn't exist inside the sandbox — so `/setup` fails with `Could
@@ -115,7 +115,7 @@ curl -fsSL https://onecli.sh/install | sh
 If your agent containers run on a custom network (e.g. `172.18.0.0/16`), use that
 network's gateway (`docker network inspect <net> -f '{{(index .IPAM.Config 0).Gateway}}'`).
 
-**`Couldn't reach the NanoClaw service` even though the daemon is running**
+3. **`Couldn't reach the NanoClaw service` even though the daemon is running**
 
 The daemon's call to the local OneCLI gateway (at the bridge IP) gets captured by
 the sandbox's `HTTP_PROXY` (`gateway.docker.internal:3128`) and times out, because
@@ -129,7 +129,7 @@ export NO_PROXY="$NO_PROXY,localhost,127.0.0.1,$(ip -4 -o addr show docker0 | aw
 cd ~/nanoclaw && pkill -f dist/index.js; bash start-nanoclaw.sh
 ```
 
-**Setup ping fails: `NanoClaw service isn't listening on its CLI socket`**
+4. **Setup ping fails: `NanoClaw service isn't listening on its CLI socket`**
 
 The sandbox has no systemd/launchd, so NanoClaw's service step only writes
 `start-nanoclaw.sh` without launching it and `data/cli.sock` is never created. The
