@@ -8,13 +8,6 @@ upstream repo at sandbox creation time and runs Claude Code from inside the
 checkout as the entrypoint, so the project's `CLAUDE.md` and `.claude/skills/`
 are loaded on attach.
 
-> [!NOTE]
-> Upstream nanoclaw trunk only ships the **CLI channel**. Chat-platform
-> adapters (WhatsApp, Telegram, Discord, Slack, …) live on the
-> upstream `channels` branch and are installed via `/add-<channel>`
-> skills run from inside Claude Code. This kit installs trunk and
-> lets you drive the rest from the shipped `claude` CLI.
-
 ## Prerequisites
 
 ### Login to Docker Hub
@@ -24,16 +17,13 @@ sbx login
 ```
 
 > [!IMPORTANT]
-> Requires **sbx 0.32.0-rc or later**. This kit uses the v2 sandbox spec
-> (`kind: sandbox`); older sbx CLIs can't parse it and fail with
-> `invalid spec.yaml: field sandbox not found in type spec.specFile`. Check your
-> version with `sbx version` and upgrade if needed.
+> Requires **sbx 0.32.0-rc or later**. 
 
 ## Quick start
 
 The kit is published to Docker Hub at
 [`ajeetraina777/sbx-nanoclaw-kits`](https://hub.docker.com/r/ajeetraina777/sbx-nanoclaw-kits).
-Run it directly — no clone required:
+
 
 ```console
 sbx run --kit docker.io/ajeetraina777/sbx-nanoclaw-kits:latest nanoclaw
